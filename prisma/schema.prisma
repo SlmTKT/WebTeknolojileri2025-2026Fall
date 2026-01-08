@@ -1,0 +1,81 @@
+// This is your Prisma schema file
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  STUDENT
+  TEACHER
+}
+
+model User {
+  id          String       @id @default(uuid())
+  email       String       @unique
+  name        String?
+  role        Role         @default(STUDENT)
+  enrollments Enrollment[]
+  courses     Course[]     // Courses taught by this user
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("users")
+}
+
+model Category {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  courses     Course[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("categories")
+}
+
+enum CourseType {
+  FACE_TO_FACE
+  ONLINE
+}
+
+model Course {
+  id          String       @id @default(uuid())
+  title       String
+  description String?
+  summary     String?
+  curriculum  String?
+  
+  type        CourseType   @default(FACE_TO_FACE)
+  capacity    Int?         @default(40) // Default 40 for F2F, null or ignored for ONLINE
+
+  categoryId  String
+  category    Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  
+  teacherId   String?      // Optional for now to support existing courses
+  teacher     User?        @relation(fields: [teacherId], references: [id]) 
+
+  enrollments Enrollment[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("courses")
+}
+
+model Enrollment {
+  id           String   @id @default(uuid())
+  userId       String
+  courseId     String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course       Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  enrolledAt   DateTime @default(now())
+
+  @@unique([userId, courseId])
+  @@map("enrollments")
+}
